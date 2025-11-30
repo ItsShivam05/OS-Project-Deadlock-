@@ -20,13 +20,15 @@ and automatically detect deadlocks using wait-for graph cycle detection.
 - SVG for graph visualization
 
 ## How to Run
-Just open `deadlock_detector.html` in any browser.
+Just open `os.html` in any browser.
 
 ## Project Structure
-- index.html / deadlock_detector.html — main application file
-- README.md — documentation
+- os.html — main application file
+- readme.md — documentation
 
 ## Developer Workflow
 - Uses Git with branches for features
 - Pull requests for merging into main
 - Multiple commits with proper messages
+
+# 2025-11-30T17:12:44 - Rev 1: improved project summary

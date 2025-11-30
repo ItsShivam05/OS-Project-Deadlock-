@@ -643,3 +643,5 @@ window.removeRes = removeRes;
 window.removeHold = removeHold;
 window.removeWait = removeWait;
 window.drawGraph = drawGraph;
+
+// 2025-11-30T17:13:05 - Rev 5: improve cycle highlight visuals

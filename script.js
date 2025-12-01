@@ -362,6 +362,178 @@ function findCycle(graph) {
   return foundCycle; // array path or null
 }
 
+// Step-by-step DFS cycle detection - generates steps for visualization
+let algorithmSteps = [];
+let currentStepIndex = 0;
+let autoPlayInterval = null;
+
+function findCycleStepByStep(graph) {
+  algorithmSteps = [];
+  currentStepIndex = 0;
+
+  if (Object.keys(graph).length === 0) {
+    algorithmSteps.push({
+      step: 0,
+      description: "Graph is empty. No cycles possible.",
+      visited: [],
+      stack: [],
+      currentNode: null,
+      checking: null,
+      cycle: null,
+    });
+    return algorithmSteps;
+  }
+
+  const visited = new Set();
+  const stack = [];
+  const onstack = new Set();
+  let foundCycle = null;
+  let stepCounter = 0;
+
+  function dfs(node, parent = null) {
+    if (foundCycle) return true;
+    if (!graph[node]) return false;
+
+    // Step: Visit node
+    stepCounter++;
+    visited.add(node);
+    stack.push(node);
+    onstack.add(node);
+
+    algorithmSteps.push({
+      step: stepCounter,
+      description: `Visiting node ${node}. Added to visited set and stack.`,
+      visited: Array.from(visited),
+      stack: [...stack],
+      currentNode: node,
+      checking: null,
+      cycle: null,
+      action: "visit",
+    });
+
+    const neigh = graph[node] || [];
+
+    for (const n of neigh) {
+      if (foundCycle) break;
+
+      // Step: Check neighbor
+      stepCounter++;
+      algorithmSteps.push({
+        step: stepCounter,
+        description: `Checking neighbor ${n} of ${node}...`,
+        visited: Array.from(visited),
+        stack: [...stack],
+        currentNode: node,
+        checking: n,
+        cycle: null,
+        action: "check",
+      });
+
+      if (!visited.has(n)) {
+        // Step: Recursive call
+        stepCounter++;
+        algorithmSteps.push({
+          step: stepCounter,
+          description: `${n} not visited. Recursively exploring ${n}...`,
+          visited: Array.from(visited),
+          stack: [...stack],
+          currentNode: node,
+          checking: n,
+          cycle: null,
+          action: "recurse",
+        });
+
+        if (dfs(n, node)) return true;
+      } else if (onstack.has(n)) {
+        // Cycle found!
+        const idx = stack.indexOf(n);
+        foundCycle = stack.slice(idx).concat(n);
+
+        stepCounter++;
+        algorithmSteps.push({
+          step: stepCounter,
+          description: `CYCLE DETECTED! ${n} is on the stack. Cycle: ${foundCycle.join(
+            " → "
+          )}`,
+          visited: Array.from(visited),
+          stack: [...stack],
+          currentNode: node,
+          checking: n,
+          cycle: foundCycle,
+          action: "cycle",
+        });
+        return true;
+      } else {
+        // Already visited but not on stack
+        stepCounter++;
+        algorithmSteps.push({
+          step: stepCounter,
+          description: `${n} was already visited and processed. No cycle through this path.`,
+          visited: Array.from(visited),
+          stack: [...stack],
+          currentNode: node,
+          checking: n,
+          cycle: null,
+          action: "skip",
+        });
+      }
+    }
+
+    // Step: Backtrack
+    stack.pop();
+    onstack.delete(node);
+    stepCounter++;
+    algorithmSteps.push({
+      step: stepCounter,
+      description: `Backtracking from ${node}. Removed from stack.`,
+      visited: Array.from(visited),
+      stack: [...stack],
+      currentNode: null,
+      checking: null,
+      cycle: null,
+      action: "backtrack",
+    });
+
+    return false;
+  }
+
+  // Start DFS from each unvisited node
+  for (const node in graph) {
+    if (!visited.has(node)) {
+      stepCounter++;
+      algorithmSteps.push({
+        step: stepCounter,
+        description: `Starting DFS from node ${node}...`,
+        visited: Array.from(visited),
+        stack: [...stack],
+        currentNode: null,
+        checking: null,
+        cycle: null,
+        action: "start",
+      });
+
+      if (dfs(node)) break;
+    }
+  }
+
+  // Final step
+  if (!foundCycle) {
+    stepCounter++;
+    algorithmSteps.push({
+      step: stepCounter,
+      description: "No cycles found. System is deadlock-free.",
+      visited: Array.from(visited),
+      stack: [],
+      currentNode: null,
+      checking: null,
+      cycle: null,
+      action: "complete",
+    });
+  }
+
+  return algorithmSteps;
+}
+
 // Drawing
 function drawGraph(cycle = null) {
   // Edge case: empty graph
@@ -570,6 +742,213 @@ function createPathElement(d, type) {
   return path;
 }
 
+// Step-by-step visualization functions
+function showStep(stepIndex) {
+  if (!algorithmSteps || algorithmSteps.length === 0) return;
+
+  if (stepIndex < 0) stepIndex = 0;
+  if (stepIndex >= algorithmSteps.length) stepIndex = algorithmSteps.length - 1;
+
+  currentStepIndex = stepIndex;
+  const step = algorithmSteps[stepIndex];
+
+  // Update UI
+  document.getElementById("currentStepNum").textContent = step.step;
+  document.getElementById("totalSteps").textContent = algorithmSteps.length;
+  document.getElementById("stepDescription").textContent = step.description;
+  document.getElementById("visitedNodes").textContent =
+    step.visited.length > 0 ? step.visited.join(", ") : "-";
+  document.getElementById("stackState").textContent =
+    step.stack.length > 0 ? `[${step.stack.join(" → ")}]` : "[]";
+
+  // Update buttons
+  document.getElementById("prevStep").disabled = stepIndex === 0;
+  document.getElementById("nextStep").disabled =
+    stepIndex === algorithmSteps.length - 1;
+
+  // Draw graph with step highlighting
+  drawGraphWithStep(step);
+
+  // Update result
+  if (step.cycle) {
+    resultTitle.textContent = "Deadlock Detected ☠️";
+    resultBody.innerHTML = `<div style="color:var(--muted)">Cycle found: <strong>${step.cycle.join(
+      " → "
+    )}</strong></div>`;
+  } else if (step.action === "complete") {
+    resultTitle.textContent = "No Deadlock Detected ✅";
+    resultBody.textContent = "No cycles found in the wait-for graph.";
+  } else {
+    resultTitle.textContent = "Algorithm Running...";
+    resultBody.textContent = step.description;
+  }
+}
+
+function drawGraphWithStep(step) {
+  const graph = buildWaitForGraph();
+  const cycle = step.cycle || null;
+
+  // Edge case: empty graph
+  if (state.processes.length === 0 && state.resources.length === 0) {
+    svg.innerHTML =
+      '<text x="550" y="310" text-anchor="middle" fill="var(--muted)" font-size="14">Add processes and resources to visualize</text>';
+    return;
+  }
+
+  // build positions: processes in a grid layout for WFG
+  const width = 1100,
+    height = 620,
+    margin = 40;
+  const pCount = state.processes.length;
+  const cols = Math.ceil(Math.sqrt(pCount));
+  const rows = Math.ceil(pCount / cols);
+  const cellWidth = (width - 2 * margin) / cols;
+  const cellHeight = (height - 2 * margin) / rows;
+
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML =
+    '<defs><marker id="arrowhead-wait" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><polygon points="0 0, 10 3, 0 6" fill="rgba(160,200,255,0.5)" /></marker><marker id="arrowhead-cycle" markerWidth="12" markerHeight="12" refX="11" refY="4" orient="auto"><polygon points="0 0, 12 4, 0 8" fill="#fb7185" /></marker></defs>';
+
+  const procPositions = {};
+
+  // Position processes in grid
+  state.processes.forEach((p, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = margin + col * cellWidth + cellWidth / 2;
+    const y = margin + row * cellHeight + cellHeight / 2;
+    procPositions[p] = { x, y };
+  });
+
+  // Draw wait-for graph edges (process to process)
+  const wfg = buildWaitForGraph();
+  for (const proc in wfg) {
+    wfg[proc].forEach((targetProc) => {
+      const from = procPositions[proc];
+      const to = procPositions[targetProc];
+      if (from && to) {
+        const path = makeArrowPath(from.x, from.y, to.x, to.y);
+        const el = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path"
+        );
+        el.setAttribute("d", path);
+        el.setAttribute("fill", "none");
+        el.setAttribute("stroke", "rgba(160,200,255,0.5)");
+        el.setAttribute("stroke-width", "2");
+        el.setAttribute("marker-end", "url(#arrowhead-wait)");
+        svg.appendChild(el);
+      }
+    });
+  }
+
+  // Draw nodes (processes only for WFG)
+  state.processes.forEach((p) => {
+    const pos = procPositions[p];
+    if (!pos) return;
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("transform", `translate(${pos.x},${pos.y})`);
+
+    // Highlight current node
+    let fillColor = "#042b46";
+    let strokeColor = "rgba(255,255,255,0.1)";
+    let strokeWidth = 1;
+    let r = 20;
+
+    if (step.currentNode === p) {
+      fillColor = "#1e40af";
+      strokeColor = "#60a5fa";
+      strokeWidth = 4;
+      r = 24;
+    } else if (step.visited.includes(p)) {
+      fillColor = "#065f46";
+      strokeColor = "#34d399";
+      strokeWidth = 2;
+    }
+
+    // Highlight node being checked
+    if (step.checking === p && step.currentNode !== p) {
+      fillColor = "#7c2d12";
+      strokeColor = "#fbbf24";
+      strokeWidth = 3;
+    }
+
+    const circ = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+    circ.setAttribute("r", r);
+    circ.setAttribute("fill", fillColor);
+    circ.setAttribute("stroke", strokeColor);
+    circ.setAttribute("stroke-width", strokeWidth);
+
+    const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute("x", 0);
+    txt.setAttribute("y", 6);
+    txt.setAttribute("text-anchor", "middle");
+    txt.setAttribute("font-size", "13");
+    txt.setAttribute("font-weight", "600");
+    txt.textContent = p;
+    txt.setAttribute("fill", "#bfe0ff");
+
+    g.appendChild(circ);
+    g.appendChild(txt);
+    svg.appendChild(g);
+  });
+
+  // Highlight cycle if found
+  if (cycle) {
+    const nodes = Array.from(new Set(cycle.slice(0, -1)));
+    nodes.forEach((n) => {
+      const pos = procPositions[n];
+      if (pos) {
+        const highlight = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "circle"
+        );
+        highlight.setAttribute("cx", pos.x);
+        highlight.setAttribute("cy", pos.y);
+        highlight.setAttribute("r", 32);
+        highlight.setAttribute("fill", "none");
+        highlight.setAttribute("stroke", "#fb7185");
+        highlight.setAttribute("stroke-width", 4);
+        highlight.setAttribute("opacity", "0.8");
+        svg.appendChild(highlight);
+      }
+    });
+
+    // Draw cycle edges
+    for (let i = 0; i < cycle.length - 1; i++) {
+      const from = procPositions[cycle[i]];
+      const to = procPositions[cycle[i + 1]];
+      if (from && to) {
+        const path = makeArrowPath(from.x, from.y, to.x, to.y);
+        const el = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path"
+        );
+        el.setAttribute("d", path);
+        el.setAttribute("fill", "none");
+        el.setAttribute("stroke", "#fb7185");
+        el.setAttribute("stroke-width", "4");
+        el.setAttribute("marker-end", "url(#arrowhead-cycle)");
+        svg.appendChild(el);
+      }
+    }
+  }
+
+  // Add label
+  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  label.setAttribute("x", width / 2);
+  label.setAttribute("y", 25);
+  label.setAttribute("text-anchor", "middle");
+  label.setAttribute("font-size", "14");
+  label.setAttribute("fill", "var(--accent)");
+  label.setAttribute("font-weight", "600");
+  label.textContent = "Wait-For Graph (WFG) - Process to Process";
+  svg.appendChild(label);
+}
+
 // Analysis
 detectBtn.onclick = () => {
   // Edge case: no processes
@@ -597,6 +976,71 @@ detectBtn.onclick = () => {
     drawGraph();
     showNotification("No deadlock detected - system is safe", "success", 3000);
   }
+};
+
+// Step-by-step mode
+document.getElementById("stepByStep").onclick = () => {
+  if (state.processes.length === 0) {
+    showNotification("Add at least one process to detect deadlocks", "warning");
+    return;
+  }
+
+  const graph = buildWaitForGraph();
+  findCycleStepByStep(graph);
+
+  // Show controls
+  document.getElementById("stepControls").style.display = "block";
+  currentStepIndex = 0;
+  showStep(0);
+  showNotification("Step-by-step mode activated", "info");
+};
+
+// Step navigation
+document.getElementById("nextStep").onclick = () => {
+  if (currentStepIndex < algorithmSteps.length - 1) {
+    showStep(currentStepIndex + 1);
+  }
+};
+
+document.getElementById("prevStep").onclick = () => {
+  if (currentStepIndex > 0) {
+    showStep(currentStepIndex - 1);
+  }
+};
+
+document.getElementById("resetSteps").onclick = () => {
+  currentStepIndex = 0;
+  showStep(0);
+};
+
+document.getElementById("closeStepMode").onclick = () => {
+  document.getElementById("stepControls").style.display = "none";
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+  }
+  drawGraph();
+};
+
+// Auto-play
+document.getElementById("autoPlay").onclick = () => {
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+    document.getElementById("autoPlay").textContent = "▶ Auto Play";
+    return;
+  }
+
+  document.getElementById("autoPlay").textContent = "⏸ Pause";
+  autoPlayInterval = setInterval(() => {
+    if (currentStepIndex < algorithmSteps.length - 1) {
+      showStep(currentStepIndex + 1);
+    } else {
+      clearInterval(autoPlayInterval);
+      autoPlayInterval = null;
+      document.getElementById("autoPlay").textContent = "▶ Auto Play";
+    }
+  }, 1500);
 };
 
 // Download report

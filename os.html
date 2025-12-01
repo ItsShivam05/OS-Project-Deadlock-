@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Automated Deadlock Detection — Frontend Demo</title>
+  <title>Automated Deadlock Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="wrap">
     <header>
       <div>
-        <h1>Automated Deadlock Detection — Frontend Demo</h1>
-        <p class="lead">Enter processes, resources, set holds/waits, and detect deadlocks visually (no backend required).</p>
+        <h1>Automated Deadlock Detection</h1>
+        <p class="lead">Enter processes, resources, set holds/waits, and detect deadlocks visually.</p>
       </div>
-      <div style="margin-left:auto;color:var(--muted);font-size:13px">Local demo • Modular</div>
     </header>
 
     <div class="grid">
@@ -61,11 +63,13 @@
           </div>
 
           <p class="section-title">Lists</p>
+
           <div class="list" id="lists">
-            <!-- dynamic lists here -->
+
           </div>
 
         </div>
+        
       </div>
 
       <div class="viz-wrap">
@@ -81,6 +85,7 @@
           </div>
           <div style="display:flex;gap:8px">
             <button id="detect" class="small" aria-label="Run deadlock detection">Detect Deadlock</button>
+            <button id="stepByStep" class="small secondary" aria-label="Step-by-step visualization">Step-by-Step</button>
             <button id="downloadReport" class="small secondary" aria-label="Download analysis report">Download Report</button>
           </div>
         </div>
@@ -92,6 +97,34 @@
         <div class="card summary" id="summary">
           <strong id="resultTitle">No analysis run yet.</strong>
           <div id="resultBody" style="margin-top:8px;color:var(--muted)">Add entities and then click <em>Detect Deadlock</em>.</div>
+        </div>
+
+        <!-- Step-by-Step Controls -->
+        <div class="card" id="stepControls" style="display:none;margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <strong style="color:var(--accent)">Algorithm Visualization</strong>
+            <button id="closeStepMode" class="small secondary">Close</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <button id="prevStep" class="small secondary" disabled>◀ Previous</button>
+            <button id="nextStep" class="small secondary">Next ▶</button>
+            <button id="autoPlay" class="small secondary">▶ Auto Play</button>
+            <button id="resetSteps" class="small secondary">Reset</button>
+          </div>
+          <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:8px;margin-bottom:8px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Step <span id="currentStepNum">0</span> of <span id="totalSteps">0</span></div>
+            <div id="stepDescription" style="font-size:13px;color:#e2e8f0;line-height:1.6"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:rgba(0,0,0,0.2);padding:10px;border-radius:8px">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">VISITED NODES</div>
+              <div id="visitedNodes" style="font-size:12px;color:var(--ok);font-family:'JetBrains Mono',monospace">-</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:10px;border-radius:8px">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase">STACK STATE</div>
+              <div id="stackState" style="font-size:12px;color:var(--accent);font-family:'JetBrains Mono',monospace">-</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

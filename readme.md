@@ -152,10 +152,5 @@ Perfect for:
 - **Cycle Detection**: Finding cycles in graphs
 - **Resource Allocation**: Process-resource relationships
 
----
 
-**Made with ❤️ for Operating Systems Education**
 
-For complete feature documentation, see [FEATURES.md](FEATURES.md)
-
-# 2025-11-30T17:12:44 - Rev 1: improved project summary
